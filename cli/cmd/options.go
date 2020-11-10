@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"errors"
+	"os"
 
 	"fmt"
 	"io/ioutil"
@@ -241,15 +242,24 @@ func makeAllStageFlags(defaults *l5dcharts.Values) ([]flag.Flag, *pflag.FlagSet)
 		flag.NewStringFlag(allStageFlags, "config", "",
 			"A path to a yaml configuration file. The fields in this file will override the values used to install or upgrade Linkerd.",
 			func(values *l5dcharts.Values, value string) error {
-				if value != "" {
-					data, err := ioutil.ReadFile(value)
+				var (
+					data []byte
+					err  error
+				)
+				if value == "-" {
+					data, err = ioutil.ReadAll(os.Stdin)
 					if err != nil {
 						return err
 					}
-					err = yaml.Unmarshal(data, &values)
+				} else if value != "" {
+					data, err = ioutil.ReadFile(value)
 					if err != nil {
 						return err
 					}
+				}
+				err = yaml.Unmarshal(data, &values)
+				if err != nil {
+					return err
 				}
 				return nil
 			}),
